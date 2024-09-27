@@ -32,51 +32,62 @@ function auto_assign($choicegroup, $cm, $course, $selectedgroups) {
     // Получить список неответивших
     $usergroups = choicegroup_get_response_data($choicegroup, $cm, 0, false);
 
-    $nogroupusers = array();
-    foreach ($usergroups as $group) {
-        foreach ($group as $user) {
-            if (!isset($user->grpsmemberid)) {
-                array_push($nogroupusers, $user->id);
-            }
-        }
+    $unassignedusers = array_values($usergroups[0]);
+
+    $unassigneduserscount = sizeof($unassignedusers);
+
+    if ($unassigneduserscount == 0) {
+        return get_string('notification:nounassignedusers', 'mod_choicegroup');
     }
 
-    if (!$nogroupusers) return;
+    $sql = "SELECT g.id AS groupid,
+                g.name AS groupname,
+                cgo.maxanswers AS maxanswers,
+                COUNT(gm.userid) AS countofmembers
+            FROM {choicegroup} cg
+                INNER JOIN {choicegroup_options} cgo ON cg.id = cgo.choicegroupid
+                INNER JOIN {groups} g ON g.id = cgo.groupid
+                LEFT JOIN {groups_members} gm ON gm.groupid = g.id
+            WHERE cg.id = ".$choicegroup->id."
+              AND g.id IN (".implode(',', $selectedgroups).")
+            GROUP BY g.id, g.name, cgo.maxanswers
+            ORDER BY groupid, groupname, maxanswers";
+    $groups = $DB->get_records_sql($sql);
 
-    $adgrouplist = array();
-    // Квоты
-    foreach ($selectedgroups as $group) {
-        $group->free = $group->max_answers - $group->count_of_members;
+    $adgrouplist = array();    
+    $totalcurrentusers = 0;
+    foreach ($groups as $group) {        
+        $totalcurrentusers += $group->countofmembers;
+        $group->free = $group->maxanswers > 0 ?$group->maxanswers - $group->countofmembers : -1;
         array_push($adgrouplist, $group);
     }
-
-    // Считаем распределение, если групп 2
-    if (sizeof($adgrouplist) >= 2) {
-        $countofusers = sizeof($nogroupusers);
-        $diff = abs($adgrouplist[0]->count_of_members - $adgrouplist[1]->count_of_members);
-        $adgrouplist[0]->quota = $adgrouplist[1]->quota = round(($countofusers - $diff) / 2);
-
-        if ($diff > 0) {
-            if ($adgrouplist[0]->count_of_members > $adgrouplist[1]->count_of_members) {
-                $adgrouplist[0]->quota += $diff;
-            } else {
-                $adgrouplist[0]->quota += $diff;
-            }
-        }
-    } else {
-        $adgrouplist[0]->quote = sizeof($nogroupusers);
-    }
+    
+    $allusers = $unassigneduserscount + $totalcurrentusers;
+    $groupssize = sizeof($groups);
+    $minimumgroupcount = floor($allusers / $groupssize);
+    $usersremains = $allusers % $groupssize;   
 
     // Распределить пользователей по группам
-    $counter = 0;
-    $index = 0;
-
-    foreach ($nogroupusers as $user) {
-        choicegroup_user_submit_response($adgrouplist[$index]->group_id, $choicegroup, $user, $course, $cm, true);
-        $counter++;
+    $userindex = 0;
+    foreach ($adgrouplist as $group) {
+        // Если группа не достигла равного распределения, добавляем студентов.
+        $assigntogroup = $minimumgroupcount - $group->countofmembers;
         
-        if ($counter >= $adgrouplist[$index]->quota) {
-            $index++;
+        // Если у нас есть остаток, добавляем еще одного студента в эту группу.
+        if ($usersremains > 0) {
+            $assigntogroup += 1;
+            $usersremains -= 1;
+        }
+
+        for ($i=0; $i < $assigntogroup; $i++) {
+            choicegroup_user_submit_response($group->groupid, $choicegroup, $unassignedusers[$userindex], $course, $cm, true);
+            $userindex++;
+
+            if ($userindex == sizeof($unassignedusers)) {
+                return null;
+            }
         }
     }
+
+    return null;
 }

@@ -30,3 +30,7 @@ $string['selectall'] = 'Выбрать все';
 $string['deselectall'] = 'Снять все';
 $string['confirm'] = 'Подтвердить';
 $string['return'] = 'Вернуться';
+
+// Notifications
+$string['notification:nogroupsselected'] = 'Выберите хотя бы одну группу';
+$string['notification:nounassignedusers'] = 'Нет студентов для распределения';

@@ -47,12 +47,18 @@ require_login($course->id, false, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/choicegroup:randomassign', $context);
 
+$notification = null;
+
 if ($action == 'confirm') {
     if (!empty($selectedgroups)) {
-        auto_assign($choicegroup, $cm, $course, $selectedgroups);
-        redirect(new moodle_url('report.php', array('id' => $cm->id)));
+        $autoassignresult = auto_assign($choicegroup, $cm, $course, $selectedgroups);
+        if (is_null($autoassignresult)) {
+            redirect(new moodle_url('report.php', array('id' => $cm->id)));
+        } else {
+            $notification = $autoassignresult;
+        }
     } else {
-        echo $OUTPUT->notification(get_string('nogroupsselected', 'mod_choicegroup'), 'notifyproblem');
+        $notification = get_string('notification:nogroupsselected', 'mod_choicegroup');
     }
 }
 
@@ -62,6 +68,10 @@ $PAGE->set_heading(format_string($choicegroup->name));
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('assignstudents', 'mod_choicegroup'));
+
+if (!is_null($notification)) {
+    echo $OUTPUT->notification($notification, 'notifyproblem');
+}
 
 // Получаем все группы, доступные в данном choice group
 $sql = "SELECT g.id,
@@ -74,7 +84,7 @@ $sql = "SELECT g.id,
                 LEFT JOIN {groups_members} gm ON gm.groupid = g.id
             WHERE cg.id = ".$choicegroup->id."
             GROUP BY g.id, g.name, cgo.maxanswers
-            ORDER BY g.id, g.name, cgo.maxanswers";    
+            ORDER BY g.id, g.name, cgo.maxanswers";
 $groups = $DB->get_records_sql($sql);
 
 // Форма с чекбоксами для выбора групп

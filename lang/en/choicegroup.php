@@ -180,3 +180,7 @@ $string['selectall'] = 'Select all';
 $string['deselectall'] = 'Deselect all';
 $string['confirm'] = 'Confirm';
 $string['return'] = 'Return';
+
+// Notifications
+$string['notification:nogroupsselected'] = 'You need to select one group at';
+$string['notification:nounassignedusers'] = 'There is no unassigned students';
