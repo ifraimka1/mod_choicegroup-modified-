@@ -25,6 +25,7 @@
 
 require_once("../../config.php");
 require_once("lib.php");
+require_once("../../cohort/lib.php");
 
 $id         = required_param('id', PARAM_INT);   // Module id.
 $format     = optional_param('format', CHOICEGROUP_PUBLISH_NAMES, PARAM_INT);
@@ -104,59 +105,67 @@ if (!$download) {
 $users = choicegroup_get_response_data($choicegroup, $cm, $groupmode, $choicegroup->onlyactive);
 
 if ($download == "ods" && has_capability('mod/choicegroup:downloadresponses', $context)) {
-    require_once("$CFG->libdir/odslib.class.php");
+    require_once("$CFG->libdir/excellib.class.php");
 
-    // Calculate file name.
-    $filename = clean_filename("$course->shortname ".strip_tags(format_string($choicegroup->name, true))).'.ods';
-    // Creating a workbook.
-    $workbook = new MoodleODSWorkbook("-");
-    // Send HTTP headers.
-    $workbook->send($filename);
-    // Creating the first worksheet.
-    $myxls = $workbook->add_worksheet($strresponses);
-
-    // Print names of all the fields.
-    $myxls->write_string(0, 0, get_string("lastname"));
-    $myxls->write_string(0, 1, get_string("firstname"));
-    $myxls->write_string(0, 2, get_string("idnumber"));
-    $myxls->write_string(0, 3, get_string("email"));
-    $myxls->write_string(0, 4, get_string("group"));
-    $myxls->write_string(0, 5, get_string("choice", "choicegroup"));
-
-    // Generate the data for the body of the spreadsheet.
-    $i = 0;
-    $row = 1;
-    if ($users) {
-        $displayed = [];
-        foreach ($users as $option => $userid) {
-            foreach ($userid as $user) {
-                if (in_array($user->id, $displayed)) {
-                    continue;
-                }
-                $displayed[] = $user->id;
-                $myxls->write_string($row, 0, $user->lastname);
-                $myxls->write_string($row, 1, $user->firstname);
-                $studentid = (!empty($user->idnumber) ? $user->idnumber : " ");
-                $myxls->write_string($row, 2, $studentid);
-                $myxls->write_string($row, 3, $user->email);
-                $ug2 = [];
-                if ($usergrps = groups_get_all_groups($course->id, $user->id)) {
-                    foreach ($groupsids as $gid) {
-                        if (array_key_exists($gid, $usergrps)) {
-                            $ug2[] = format_string($usergrps[$gid]->name);
+    /// Calculate file name
+        $filename = clean_filename("$course->shortname ".strip_tags(format_string($choicegroup->name,true))).'.xls';
+    /// Creating a workbook
+        $workbook = new MoodleExcelWorkbook("-");
+    /// Send HTTP headers
+        $workbook->send($filename);
+    /// Creating the first worksheet
+        // assigning by reference gives this: Strict standards: Only variables should be assigned by reference in /data_1/www/html/moodle/moodle/mod/choicegroup/report.php on line 157
+        // removed the ampersand.
+        $myxls = $workbook->add_worksheet($strresponses);
+    /// Print names of all the fields
+        $myxls->write_string(0,0,get_string("lastname"));
+        $myxls->write_string(0,1,get_string("firstname"));
+        $myxls->write_string(0,2,get_string("idnumber"));
+        $myxls->write_string(0,3,get_string("email"));
+        $myxls->write_string(0,4,get_string("group"));
+        $myxls->write_string(0,5,get_string("choice","choicegroup"));
+    
+    
+    /// generate the data for the body of the spreadsheet
+        $i=0;
+        $row=1;
+        if ($users) {
+            $displayed = array();
+            foreach ($users as $option => $userid) {
+                foreach($userid as $user) {
+                    if (in_array($user->id, $displayed)) {
+                        continue;
+                    }
+                    $displayed[] = $user->id;
+                    $myxls->write_string($row,0,$user->lastname);
+                    $myxls->write_string($row,1,$user->firstname);
+                    $studentid=(!empty($user->idnumber) ? $user->idnumber : " ");
+                    $myxls->write_string($row,2,$studentid);
+                    $myxls->write_string($row,3,$user->email);
+                    $ug2 = array();
+                    if ($usergrps = cohort_get_user_cohorts($user->id)) {
+                        foreach ($usergrps as $grp) {
+                            $ug2[] = format_string($grp->name);       
+                        }                                      
+                    }
+                    $myxls->write_string($row, 4, implode(', ', $ug2));
+                    $ug2 = array();
+                    if ($usergrps = groups_get_all_groups($course->id, $user->id)) {
+                        foreach ($groups_ids as $gid) {
+                            if (array_key_exists($gid, $usergrps)) {
+                                $ug2[] = format_string($usergrps[$gid]->name);
+                            }
                         }
                     }
+                    $myxls->write_string($row, 5, implode(', ', $ug2));
+                    $row++;
                 }
-                $myxls->write_string($row, 4, implode(', ', $ug2));
-                $row++;
-                $pos = 5;
             }
+            $pos=5;
         }
-    }
-    // Close the workbook.
-    $workbook->close();
-
-    exit;
+        /// Close the workbook
+        $workbook->close();
+        exit;
 }
 
 // Print spreadsheet if one is asked for.
@@ -298,6 +307,14 @@ if (!empty($users) && has_capability('mod/choicegroup:downloadresponses', $conte
     $downloadlist = html_writer::tag('ul', implode('', $downloadoptions));
     $downloadlist .= html_writer::tag('div', '', ['class' => 'clearfloat']);
     echo html_writer::tag('div', $downloadlist, ['class' => 'downloadreport']);
+}
+
+if (!empty($users) && has_capability('mod/choicegroup:randomassign',$context)) {
+    $options = array(
+        'id' => $cm->id,
+    );
+    $button = $OUTPUT->single_button(new moodle_url('assign.php', $options), get_string('random', 'mod_choicegroup'));
+    echo html_writer::tag('div', $button, array('class' => 'mt-3'));
 }
 
 echo $OUTPUT->footer();

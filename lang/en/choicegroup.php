@@ -170,3 +170,16 @@ $string['timerestrict'] = 'Restrict answering to this time period';
 $string['viewallresponses'] = 'View {$a} responses';
 $string['withselected'] = 'With selected';
 $string['yourselection'] = 'Your selection';
+
+// Auto assign strings
+$string['random'] = 'Random';
+$string['assignstudents'] = 'Students assignment';
+$string['selectall'] = 'Select all';
+$string['deselectall'] = 'Deselect all';
+$string['confirm'] = 'Confirm';
+$string['return'] = 'Return';
+
+// Notifications
+$string['notification:nogroupsselected'] = 'You need to select one group at';
+$string['notification:nounassignedusers'] = 'There is no unassigned students';
+

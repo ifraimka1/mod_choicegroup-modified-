@@ -402,7 +402,7 @@ function check_date_restrictions($choicegroup) {
  * @param object $cm
  * @throws \moodle_exception
  */
-function choicegroup_user_submit_response($formanswer, $choicegroup, $userid, $course, $cm) {
+function choicegroup_user_submit_response($formanswer, $choicegroup, $userid, $course, $cm, $ignorerestrictions = false) {
     global $DB, $CFG;
     require_once($CFG->libdir.'/completionlib.php');
 
@@ -412,7 +412,9 @@ function choicegroup_user_submit_response($formanswer, $choicegroup, $userid, $c
         'objectid' => $choicegroup->id,
     ];
 
-    check_restrictions($choicegroup, $userid);
+    if (!$ignorerestrictions) {
+        check_restrictions($choicegroup, $userid);
+    }
 
     $selectedoption = $DB->get_record('choicegroup_options', ['id' => $formanswer]);
 
