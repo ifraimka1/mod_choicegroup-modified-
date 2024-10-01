@@ -23,6 +23,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['pluginname'] = 'Выбор групп (версия для ИКТИБ)';
+
 // Auto assign strings
 $string['random'] = 'Распределение';
 $string['assignstudents'] = 'Распределение студентов';

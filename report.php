@@ -26,6 +26,7 @@
 
 require_once("../../config.php");
 require_once("lib.php");
+require_once("../../cohort/lib.php");
 
 $id         = required_param('id', PARAM_INT);   //moduleid
 $format     = optional_param('format', CHOICEGROUP_PUBLISH_NAMES, PARAM_INT);
@@ -200,6 +201,13 @@ if ($download == "xls" && has_capability('mod/choicegroup:downloadresponses', $c
                 $myxls->write_string($row,2,$studentid);
                 $myxls->write_string($row,3,$user->email);
                 $ug2 = array();
+                if ($usergrps = cohort_get_user_cohorts($user->id)) {
+                    foreach ($usergrps as $grp) {
+                        $ug2[] = format_string($grp->name);       
+                    }                                      
+                }
+                $myxls->write_string($row, 4, implode(', ', $ug2));
+                $ug2 = array();
                 if ($usergrps = groups_get_all_groups($course->id, $user->id)) {
                     foreach ($groups_ids as $gid) {
                         if (array_key_exists($gid, $usergrps)) {
@@ -207,7 +215,7 @@ if ($download == "xls" && has_capability('mod/choicegroup:downloadresponses', $c
                         }
                     }
                 }
-                $myxls->write_string($row, 4, implode(', ', $ug2));
+                $myxls->write_string($row, 5, implode(', ', $ug2));
                 $row++;
             }
         }
