@@ -26,10 +26,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2023110901;
+$plugin->version  = 2024100100;
 $plugin->requires  = 2021051700; // Moodle 3.11
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release = '1.42.1 for Moodle 3.11-4.2 (Build: 2023110900)';
+$plugin->release = '1.42.1 (ictis-mod) for Moodle 3.11-4.2 (Build: 2024100100)';
 
 $plugin->component = 'mod_choicegroup';
 $plugin->cron = 0;
